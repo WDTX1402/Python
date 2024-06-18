@@ -1,0 +1,294 @@
+from tkinter import *
+from tkinter import filedialog
+from tkinter import messagebox
+from settings import Setting
+import time as t
+import pickle
+
+class Mainui:
+    def __init__(self, window):
+        self.window = window
+        img = PhotoImage(file='C:/Users/phatt/Desktop/Code Files/Python/Computer Prgramming (Python)/Projekt/R.png')
+        window.iconphoto(False, img)
+        self.window.title("Restaurant Manager")
+        self.window.geometry('1280x720')
+        
+        
+        self.menu = {}
+        self.table_vars = {}
+        self.current_file = None
+
+        #Create MENU
+        self.menubar = Menu(window)
+        # create a File menu
+        self.file_menu = Menu(self.menubar, tearoff=0)
+        self.file_menu.add_command(label="New", command=self.new_data)
+        self.file_menu.add_command(label="Save", command=self.save_data_as)
+        self.file_menu.add_command(label="Load", command=self.load_data)
+        self.file_menu.add_command(label="Exit", command=window.quit)
+        self.menubar.add_cascade(label="File", menu=self.file_menu)
+        # create a Settings menu
+        self.setting_menu = Menu(self.menubar, tearoff=0)
+        self.setting_menu.add_command(label="Set Tables", command=lambda: self.open_setting("tables"))
+        self.setting_menu.add_command(label="Set Menus", command=lambda: self.open_setting("menus"))
+        self.menubar.add_cascade(label="Setting", menu=self.setting_menu)
+        #create a Help menu
+        self.help_menu = Menu(self.menubar, tearoff=0)
+        self.help_menu.add_command(label="About", command=self.about)
+        self.menubar.add_cascade(label="Help", menu=self.help_menu)
+        #display menu
+        window.config(menu=self.menubar)
+
+
+
+        #Create Tables 
+        self.tables_frame = Frame(window, width=180,height=720, bg="lightgray")
+        self.tables_frame.pack(side=LEFT, fill=Y, padx=5, pady=10)
+        #create scrollbar 
+        self.scrollbar = Scrollbar(self.tables_frame, orient=VERTICAL)
+        self.scrollbar.pack(side=RIGHT, fill=Y)
+        # Create a canvas inside the outer frame for scrolling and associate with the scrollbar
+        self.canvas = Canvas(self.tables_frame,width=180, yscrollcommand=self.scrollbar.set)
+        self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
+        self.scrollbar.config(command=self.canvas.yview)
+        self.inner_tables_frame = Frame(self.canvas)  # <-- Change here
+        self.canvas.create_window((0, 0), window=self.inner_tables_frame, anchor="nw")  # <-- Change here
+        self.inner_tables_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))  # <-- Change here
+
+
+        self.num_tables = 0
+                
+        #Create Middle Frame
+        self. middle_frame = Frame(window,height=720, bg="gray")
+        self.middle_frame.pack_propagate(0)
+        self.middle_frame.pack(side=LEFT, fill=BOTH,expand=True, padx=5, pady=10)
+
+                
+        #Create TIME
+        self.time_frame = Frame(window, width=280,height=720, bg="lightgray")
+        self.time_label = Label(self.time_frame, font=('Times', 20, 'bold'), background='purple', foreground='white')
+        self.time_frame.pack(side= RIGHT, fill=Y, expand=False, padx=5, pady=10)
+        self.time_label.pack(side= TOP)
+        self.update_time()
+        
+    def new_order(self):
+        print("Starting a new order...")
+        
+    def about(self):
+        about_window = Toplevel(self.window)
+        about_window.title("About")
+        Label(about_window, text="Restaurant Manager\nVersion 1.0\nBy GE WDTX1402").pack(pady=20, padx=20)
+        Button(about_window, text="Close", command=about_window.destroy).pack(pady=20)
+
+    def update_time(self):
+        current_time = t.strftime('%H:%M:%S %p')
+        self.time_label.config(text=f" Time: {current_time} ")
+        self.window.after(1000, self.update_time)
+
+    def generate_tables(self):
+        for widget in self.inner_tables_frame.winfo_children():  # <-- Change here
+            widget.destroy()
+
+        for i in range(1, self.num_tables + 1):
+            table = Button(self.inner_tables_frame, text=f"Table {i}", bg="white", width=20, height=2,  # <-- Change here
+                        command=lambda table_num=i: self.display_menu_for_table(table_num))
+            table.pack(pady=5)
+
+
+    def display_dormant_table(self, table_number):
+        for widget in self.middle_frame.winfo_children():
+            widget.destroy()
+        
+        table_label = Label(self.middle_frame, text=f"Table {table_number}", font=('Arial', 20, 'bold'), )
+        table_label.pack(pady=10)
+
+
+
+    def display_menu_for_table(self, table_number):
+        for widget in self.middle_frame.winfo_children():
+            widget.destroy()
+
+        table_label = Label(self.middle_frame, text=f"Table {table_number}", font=('Arial', 20, 'bold'), )
+        table_label.pack(pady=10)
+
+        #create the order frame 
+        order_frame = Frame(self.middle_frame, bg='white')
+        order_frame.pack(side=LEFT, fill=BOTH, expand=True, padx=5, pady=10)
+
+        #scrollbar inside order_frame
+        self.scrollbar2 = Scrollbar(order_frame, orient=VERTICAL)
+        self.scrollbar2.pack(side=RIGHT, fill=Y)
+
+        #canvas inside order_frame
+        self.menucanvas = Canvas(order_frame, yscrollcommand=self.scrollbar2.set, bg='white', bd=2, relief='ridge')
+        self.menucanvas.pack(side=LEFT, fill=BOTH, expand=True, padx=5, pady=5)
+        self.scrollbar2.config(command=self.menucanvas.yview)
+
+        #frame inside Canvas
+        self.menu_frame = Frame(self.menucanvas, bg='white', pady=5)
+        self.menucanvas.create_window((0, 0), window=self.menu_frame, anchor="nw")
+        self.menu_frame.bind("<Configure>", lambda e: self.menucanvas.configure(scrollregion=self.menucanvas.bbox("all")))
+
+
+        self.summary_frame = Frame(self.middle_frame, bg='lightgray')
+        self.summary_frame.pack(side=RIGHT, fill=BOTH, padx=5, pady=10, expand=True)
+
+        # Packing the Order Summary label at the top of the summary_frame
+        self.order_summary_label = Label(self.summary_frame, text="Order Summary", font=('Arial', 14),bg='lightgray')
+        self.order_summary_label.pack(pady=10)
+
+        # Create a frame to hold the listbox and its scrollbar
+        self.summarylist_frame = Frame(self.summary_frame)
+        self.summarylist_frame.pack(fill=BOTH, expand=True)
+
+        # Create the scrollbar inside summarylist_frame
+        self.order_listbox_scrollbar = Scrollbar(self.summarylist_frame, orient=VERTICAL)
+        self.order_listbox_scrollbar.pack(side=RIGHT, fill=Y)
+
+        # Create the listbox associated with the scrollbar inside summarylist_frame
+        self.order_listbox = Listbox(self.summarylist_frame, font=('Arial', 13), height=20, width=25, yscrollcommand=self.order_listbox_scrollbar.set)
+        self.order_listbox.pack(side=LEFT, fill=BOTH, expand=True, padx=5, pady=10)
+
+        # Connect the scrollbar to the listbox
+        self.order_listbox_scrollbar.config(command=self.order_listbox.yview)
+
+
+        self.checkout_frame = Frame(self.summary_frame, bg = 'gray')
+        self.checkout_frame.pack(side=BOTTOM, fill=BOTH, padx=5, pady=10, expand=True)
+
+        self.total_cost_var = StringVar(value="Total: ฿0.00")
+        self.total_cost_label = Label(self.checkout_frame, textvariable=self.total_cost_var, font=('Arial', 12))
+        self.total_cost_label.pack(side = TOP,pady=20, anchor='s')
+
+        if not hasattr(self, 'table_orders'):  
+            self.table_orders = {}
+
+        if table_number not in self.table_orders:
+            self.table_orders[table_number] = {}
+
+        for menu_item , menu_price in self.menu.items():
+            item_frame = Frame(self.menu_frame) 
+            item_frame.pack(fill=X, pady=5)
+
+            menu_label = Label(item_frame, text=menu_item,font=('Arial', 12), width=15, anchor=W)
+            menu_label.pack(side=LEFT)
+
+            price_label = Label(item_frame, text=f"฿ {menu_price}",font=('Arial', 12), width=15, anchor=W)
+            price_label.pack(side=LEFT)
+
+            qty_var = IntVar(value=self.table_orders[table_number].get(menu_item, 0))
+            qty_label = Label(item_frame, textvariable=qty_var, width=5, relief="solid", bd=1)
+            qty_label.pack(side=LEFT, padx=5)
+
+            add_btn = Button(item_frame, text="+", command=lambda var=qty_var, item=menu_item: self.update_order(var, item, table_number, 1))
+            add_btn.pack(side=LEFT)
+
+            sub_btn = Button(item_frame, text="-", command=lambda var=qty_var, item=menu_item: self.update_order(var, item, table_number, -1))
+            sub_btn.pack(side=LEFT, padx=5)
+
+            self.table_vars[menu_item] = qty_var
+            self.table_orders[table_number][menu_item] = qty_var.get()
+
+
+    
+        save_btn = Button(self.middle_frame, text="Save Order",font=('Arial', 12), width=20, height=2, command=lambda: self.save_order(table_number))
+        save_btn.pack(padx= 5,pady=30)
+        delete_btn = Button(self.middle_frame, text="Delete Order",font=('Arial', 12), width=20, height=2, command=lambda: self.delete_order(table_number))
+        delete_btn.pack(padx= 5,pady=30)
+
+        checkout_btn = Button(self.checkout_frame, text="Check out",font=('Arial', 14), width=20, height=2, command=lambda: self.checkout(table_number))
+        checkout_btn.pack(side = BOTTOM , pady= 10)
+
+    def update_order(self, var, item, table_number, add):
+        """Helper method to update the order quantity when buttons are pressed."""
+        new_value = max(0, var.get() + add)  # Ensures the value never goes negative
+        var.set(new_value)
+        self.table_orders[table_number][item] = new_value
+
+
+    def save_order(self, table_number):
+        self.order_listbox.delete(0, END)  
+        total_cost = 0.0
+
+        for menu_item, qty_var in self.table_vars.items():
+            try:
+                qty = int(qty_var.get())
+                self.table_orders[table_number][menu_item] = qty
+      
+                item_cost = self.menu.get(menu_item, 0)
+        
+                menu_item_total = qty * item_cost
+                total_cost += menu_item_total
+            
+                if qty > 0:
+                    self.order_listbox.insert(END, f"{menu_item} x{qty} - ฿{menu_item_total:.2f}")
+
+            except ValueError:
+                self.table_orders[table_number][menu_item] = 0
+
+
+        self.total_cost_var.set(f"Total: ฿{total_cost:.2f}")
+
+
+    def delete_order(self, table_number):
+        selected_index = self.order_listbox.curselection()  # get the currently selected item's index
+        if selected_index:  # Check if something is selected
+            selected_item = self.order_listbox.get(selected_index)
+            menu_name = selected_item.split(" ")[0]  # Assumes format "MenuName xQuantity - Cost"
+
+            # Update the table_orders dictionary
+            if table_number in self.table_orders and menu_name in self.table_orders[table_number]:
+                del self.table_orders[table_number][menu_name]
+
+            self.order_listbox.delete(selected_index)
+
+            total_cost = 0.0
+            for menu_item, qty in self.table_orders[table_number].items():
+                menu_item_cost = qty * 10  # Assume fixed price of $10, modify if needed
+                total_cost += menu_item_cost
+            self.total_cost_var.set(f"Total: ฿{total_cost:.2f}")
+
+
+
+    def open_setting(self, setting_type):
+        setting_window = Toplevel(self.window)
+        Setting(setting_window, self, setting_type)
+
+    def save_data_as(self):
+        file_name = filedialog.asksaveasfilename(defaultextension=".pkl", filetypes=[("Pickle files", "*.pkl")])
+        if file_name:
+            with open(file_name, 'wb') as f:
+                pickle.dump(self.num_tables, f)
+                pickle.dump(self.menu, f)
+            print(f"Data saved to {file_name}.")
+            self.current_file = file_name
+
+    def load_data(self):
+        file_name = filedialog.askopenfilename(defaultextension=".pkl", filetypes=[("Pickle files", "*.pkl")])
+        if file_name:
+            try:
+                with open(file_name, 'rb') as f:
+                    self.num_tables = pickle.load(f)
+                    self.menu = pickle.load(f)
+                self.generate_tables()
+                print(f"Data loaded from {file_name}.")
+                self.current_file = file_name
+            except (FileNotFoundError, EOFError, pickle.UnpicklingError) as e:
+                messagebox.showerror('Error', 'Data could not be loaded')
+                print(f"Error loading data: {e}")
+
+
+    def new_data(self):
+        self.num_tables = 0
+        self.generate_tables()
+        self.current_file = None
+        print("Started a new file.")
+
+
+
+
+
+if __name__ == '__main__':
+    window = Tk()
+    app = Mainui(window)
+    window.mainloop()

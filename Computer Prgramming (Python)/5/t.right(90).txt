@@ -1,0 +1,47 @@
+t.right(90)
+
+for i in range(N):
+     draw_square(x)
+     t.forward(x)
+
+t.right(90)
+
+for i in range(N):
+     draw_square(x)
+     t.forward(x)
+
+t.right(90)
+
+for i in range(N-1):
+     draw_square(x)
+     t.forward(x)
+
+t.right(90)
+
+for i in range(N-1):
+     draw_square(x)
+     t.forward(x)
+
+t.right(90)
+
+for i in range(N-2):
+     draw_square(x)
+     t.forward(x)
+
+t.right(90)
+
+for i in range(N-2):
+     draw_square(x)
+     t.forward(x)
+
+t.right(90)
+
+for i in range(N-3):
+     draw_square(x)
+     t.forward(x)
+
+t.right(90)
+
+for i in range(N-3):
+     draw_square(x)
+     t.forward(x)
